@@ -33,7 +33,7 @@ const userSchema = mongoose.Schema({
     }
   }],
   avatar: {
-    type: Buffer
+    type: String
   }
 }, {
   timestamps: true
@@ -53,7 +53,11 @@ userSchema.methods.toJSON = function () {
 // Generer un token
 userSchema.methods.generateAuthToken = async function() {
   const user = this
-  const token = jwt.sign({ _id: user._id }, "login")
+  const token = jwt.sign({ 
+    _id: user._id,
+    name: user.name,
+    exp: Math.floor(Date.now() / 1000) + 3600 * 48
+   }, process.env.TOKEN_SECRET_KEY)
   
   user.tokens = user.tokens.concat({token})
   await user.save()

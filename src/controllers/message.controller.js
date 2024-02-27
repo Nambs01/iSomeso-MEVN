@@ -1,13 +1,10 @@
-const express = require('express')
 const Message = require('../models/message')
-const auth = require('../middleware/auth')
-const { default: mongoose } = require('mongoose')
-const router = express.Router()
 
 // Dernier message par chaque utilisateur
-router.get('/messages', auth, async (req, res) => {
+
+const getLastMessages = async (req, res) => {
   try {
-    const message = await Message.aggregate([
+    const messages = await Message.aggregate([
       {
         $match: {
           $or: [
@@ -35,16 +32,17 @@ router.get('/messages', auth, async (req, res) => {
         $replaceRoot: { newRoot: "$latestMessage" }
       }
     ])
-    res.send(message)
+    res.send(messages)
   } catch (error) {
-    res.status(500).send(error)
+    res.status(500).send({ error: error })
   }
-})
+}
 
 // Discussion avec un utilisateur (tous les messages)
-router.get('/messages/:id', auth, async (req, res) => {
+
+const getMessages = async (req, res) => {
   try {
-    const _id = new mongoose.Types.ObjectId(req.params.id)
+    const _id = new ObjectId(req.params.id)
     const messages = await Message.find({
       $or: [
         { from: req.user._id, to: _id },
@@ -64,10 +62,9 @@ router.get('/messages/:id', auth, async (req, res) => {
   } catch (error) {
     res.status(400).send(error)
   }
-})
+}
 
-// envoyer un message
-router.post('/messages', auth, (req, res) => {
+const sendMessage = (req, res) => {
   const message = new Message({
     ...req.body,
     from: req.user._id
@@ -78,10 +75,9 @@ router.post('/messages', auth, (req, res) => {
   }).catch((e) => {
     res.status(400).send(e)
   })
-})
+}
 
-
-router.delete('/messages/:id', auth, async (req, res) => {
+const deleteMessage = async (req, res) => {
   try {
    const message = await Message.findOneAndDelete({ _id: req.params.id, from: req.user._id})
    
@@ -92,6 +88,11 @@ router.delete('/messages/:id', auth, async (req, res) => {
   } catch (error) {
     res.status(500).send()
   }
-})
+}
 
-module.exports = router
+module.exports = {
+  getLastMessages,
+  getMessages,
+  sendMessage,
+  deleteMessage
+}
