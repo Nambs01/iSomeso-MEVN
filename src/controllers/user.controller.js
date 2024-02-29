@@ -2,7 +2,11 @@ const User = require('../models/user')
 const uploadAvatar = require('../utils/uploadAvatar')
 
 const getUserInfo = async (req, res) => {
-  res.send(req.user)
+  try {
+    res.status(200).send({ user: req.user })
+  } catch (error) {
+    res.status(400).send(error)
+  }
 }
 
 const createUser = async (req, res) => {
