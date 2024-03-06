@@ -19,6 +19,8 @@ router.post('/users/logoutAll', AuthMiddleware, AuthController.logoutAll)
 
 router.post('/users', UserController.createUser)
 
+router.get('/users', AuthMiddleware, UserController.getAllUsers)
+
 router.get('/users/me', AuthMiddleware, UserController.getUserInfo)
 
 router.patch('/users/me', AuthMiddleware, UserController.updateUser)

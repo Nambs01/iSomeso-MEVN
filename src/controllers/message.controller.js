@@ -1,38 +1,32 @@
 const Message = require('../models/message')
-
+const { ObjectId } = require('mongoose').Types
 // Dernier message par chaque utilisateur
 
 const getLastMessages = async (req, res) => {
   try {
-    const messages = await Message.aggregate([
-      {
-        $match: {
-          $or: [
-            { from: req.user._id },
-            { to: req.user._id }
-          ]
-        }
-      },
-      {
-        $sort: { createdAt: -1 }
-      },
-      {
-        $group: {
-          _id: {
-            $cond: [
-              { $eq: ["$from", req.user._id]},
-              "$to",
-              "$from"
-            ]
-          },
-          latestMessage: { $first: "$$ROOT"}
-        }
-      },
-      {
-        $replaceRoot: { newRoot: "$latestMessage" }
-      }
-    ])
-    res.send(messages)
+    const userId = req.user._id
+    let users = []
+
+    // Trouver tous les utilisateurs avec qui l' utilisateur actuel a eu une conversation
+    const fromUsers = await Message.distinct('from', { to: userId })
+    const toUsers = await Message.distinct('to', { from: userId })
+
+    fromUsers.forEach(user => users.push(user))
+    toUsers.forEach(user => users.push(user))
+
+    // Supprimer les doublons
+    users = [...new Set(users)] 
+
+    // Recuperer les derniers messages pour chaque utilisateur
+    const messages = await Promise.all( users.map( async (otherUserId) => {
+      return await Message.find({
+        $or: [
+          { from: userId, to: otherUserId },
+          { from: otherUserId, to: userId }
+        ]
+      }).sort({ createdAt: -1 }).limit(1).populate(['to', 'from']).exec()
+    }))
+    res.send({ messages: messages })
   } catch (error) {
     res.status(500).send({ error: error })
   }
@@ -45,10 +39,10 @@ const getMessages = async (req, res) => {
     const _id = new ObjectId(req.params.id)
     const messages = await Message.find({
       $or: [
-        { from: req.user._id, to: _id },
-        { from: _id, to: req.user._id }
+        { from: req.user._id, to: req.params.id },
+        { from: req.params.id, to: req.user._id }
       ]
-    }).sort({ createdAt: -1 }).exec()
+    }).sort({ createdAt: -1 }).populate(['to', 'from']).exec();
     
     // modifier tous les messages envoyer par l'autre utilisateur en vue
     messages.forEach((message) => {
@@ -56,11 +50,10 @@ const getMessages = async (req, res) => {
         message.vue = true
         message.save()
       }
-    });
-    
-    res.send(messages)
+    })
+    res.send({ messages: messages })
   } catch (error) {
-    res.status(400).send(error)
+    res.status(400).send({ error: error })
   }
 }
 
@@ -71,9 +64,9 @@ const sendMessage = (req, res) => {
   })
 
   message.save().then(() => {
-    res.status(201).send(message)
-  }).catch((e) => {
-    res.status(400).send(e)
+    res.status(201).send({ messages: message })
+  }).catch((error) => {
+    res.status(400).send({ error: error })
   })
 }
 
@@ -82,11 +75,11 @@ const deleteMessage = async (req, res) => {
    const message = await Message.findOneAndDelete({ _id: req.params.id, from: req.user._id})
    
    if(!message){
-    return res.status(404).send()
+    return res.status(404).send({ error: "Message invalide" })
    }
-   res.send(message)
+   res.send({ messages: message })
   } catch (error) {
-    res.status(500).send()
+    res.status(500).send({ error: error })
   }
 }
 

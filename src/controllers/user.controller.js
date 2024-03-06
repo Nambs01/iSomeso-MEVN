@@ -5,7 +5,16 @@ const getUserInfo = async (req, res) => {
   try {
     res.status(200).send({ user: req.user })
   } catch (error) {
-    res.status(400).send(error)
+    res.status(400).send({ error: error.message })
+  }
+}
+
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find({ _id: {$ne: req.user._id.toString()} }).exec()
+    res.status(200).send({ users: users })
+  } catch (error) {
+    res.status(400).send({ error: error.message })
   }
 }
 
@@ -15,7 +24,7 @@ const createUser = async (req, res) => {
   await user.save().then(() => {
     res.status(201).send(user)
   }).catch((e) => {
-    res.status(400).send(e)
+    res.status(400).send({ error: e.message })
   })
 }
 
@@ -32,18 +41,18 @@ const updateUser = async (req, res) => {
     updates.forEach((update) => req.user[update] = req.body[update])
 
     await req.user.save()
-    res.send(req.user)
+    res.send({ user: req.user })
   } catch (error) {
-    return res.status(400).send({ error: error })
+    return res.status(400).send({ error: error.message })
   }
 }
 
 const deleteUser = async (req, res) => {
   try {
     await User.deleteOne(req.user)
-    res.send(req.user)
+    res.send({ user: req.user })
   } catch (error) {
-    res.status(500).send({ error: error })
+    res.status(500).send({ error: error.message })
   }
 }
 
@@ -56,7 +65,7 @@ const updateUserAvatar = async (req, res) => {
     await req.user.save()
     res.send()
   } catch (error) {
-    res.status(400).send({ error: error })
+    res.status(400).send({ error: error.message })
   }
 }
 
@@ -66,7 +75,7 @@ const deleteUserAvatar = async (req, res) => {
     await req.user.save()
     res.send()
   } catch (error) {
-    res.status(400).send({ error: error })
+    res.status(400).send({ error: error.message })
   }
 }
 
@@ -78,14 +87,15 @@ const getUserAvatar = async (req, res) => {
       throw new Error()
     }
     res.set('Content-Type', 'image/jpg')
-    res.send(user.avatar)
+    res.send({ avatar: user.avatar })
   } catch (error) {
-    res.status(400).send(error)
+    res.status(400).send({ error: error.message })
   }
 }
 
 module.exports = {
   getUserInfo,
+  getAllUsers,
   createUser,
   updateUser,
   deleteUser,
