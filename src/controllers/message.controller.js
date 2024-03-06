@@ -5,26 +5,25 @@ const { ObjectId } = require('mongoose').Types
 const getLastMessages = async (req, res) => {
   try {
     const userId = req.user._id
-    let users = []
+    const usersSet = new Set()
 
     // Trouver tous les utilisateurs avec qui l' utilisateur actuel a eu une conversation
     const fromUsers = await Message.distinct('from', { to: userId })
     const toUsers = await Message.distinct('to', { from: userId })
 
-    fromUsers.forEach(user => users.push(user))
-    toUsers.forEach(user => users.push(user))
+    fromUsers.forEach(user => usersSet.add(user.toString()))
+    toUsers.forEach(user => usersSet.add(user.toString()))
 
-    // Supprimer les doublons
-    users = [...new Set(users)] 
-
+    const users = Array.from(usersSet)
+    
     // Recuperer les derniers messages pour chaque utilisateur
     const messages = await Promise.all( users.map( async (otherUserId) => {
-      return await Message.find({
+      return (await Message.find({
         $or: [
           { from: userId, to: otherUserId },
           { from: otherUserId, to: userId }
         ]
-      }).sort({ createdAt: -1 }).limit(1).populate(['to', 'from']).exec()
+      }).sort({ createdAt: -1 }).limit(1).populate(['to', 'from']).exec())[0]
     }))
     res.send({ messages: messages })
   } catch (error) {
