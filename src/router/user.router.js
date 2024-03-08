@@ -1,5 +1,6 @@
 const router = require('express').Router()
 const AuthMiddleware = require('../middleware/auth.middleware')
+const AvatarMiddleware = require('../middleware/avatar.middleware')
 const AuthController = require('../controllers/auth.controller')
 const UserController = require('../controllers/user.controller')
 
@@ -31,7 +32,7 @@ router.delete('/users/me', AuthMiddleware, UserController.deleteUser)
             AVATAR
 ==============================*/
 
-router.post('/users/me/avatar', AuthMiddleware, UserController.updateUserAvatar)
+router.post('/users/me/avatar', AuthMiddleware, AvatarMiddleware, UserController.updateUserAvatar)
 
 router.delete('/users/me/avatar', AuthMiddleware, UserController.deleteUserAvatar)
 

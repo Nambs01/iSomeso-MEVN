@@ -1,5 +1,7 @@
 const User = require('../models/user')
-const uploadAvatar = require('../utils/uploadAvatar')
+const { promises, existsSync, rmdir, rm, unlink } = require('fs')
+const path = require('path')
+
 
 const getUserInfo = async (req, res) => {
   try {
@@ -58,12 +60,10 @@ const deleteUser = async (req, res) => {
 
 const updateUserAvatar = async (req, res) => {
   try {
-    req.user.avatar = uploadAvatar({
-      dir: `user/${req.user._id}`,
-      base64: req.file
-    })
+    // Mettre a jour l'avatar de l'utilisateur
+    req.user.avatar = req.user.avatarDirName+"\\"+req.user.avatarFileName
     await req.user.save()
-    res.send()
+    res.send({ user: req.user })
   } catch (error) {
     res.status(400).send({ error: error.message })
   }
@@ -73,7 +73,7 @@ const deleteUserAvatar = async (req, res) => {
   try {
     req.user.avatar = undefined
     await req.user.save()
-    res.send()
+    res.send(req.user)
   } catch (error) {
     res.status(400).send({ error: error.message })
   }
