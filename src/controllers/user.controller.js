@@ -1,7 +1,6 @@
 const User = require('../models/user')
-const { promises, existsSync, rmdir, rm, unlink } = require('fs')
-const path = require('path')
-
+const sharp = require('sharp')
+const { promises, readFile } = require('fs')
 
 const getUserInfo = async (req, res) => {
   try {
@@ -71,6 +70,7 @@ const updateUserAvatar = async (req, res) => {
 
 const deleteUserAvatar = async (req, res) => {
   try {
+    await promises.rmdir(req.user.avatar, { recursive: true})
     req.user.avatar = undefined
     await req.user.save()
     res.send(req.user)
@@ -80,17 +80,27 @@ const deleteUserAvatar = async (req, res) => {
 }
 
 const getUserAvatar = async (req, res) => {
-  try {
     const user = await User.findById(req.params.id)
     
     if(!user || !user.avatar){
-      throw new Error()
+      return res.send({error: 'Not have avatar!'})
     }
-    res.set('Content-Type', 'image/jpg')
-    res.send({ avatar: user.avatar })
-  } catch (error) {
-    res.status(400).send({ error: error.message })
-  }
+    
+    const extension = (user.avatar).split(".")[1]
+    
+    readFile(user.avatar, async (error, data) => {
+      if(error)
+        return res.status(400).send({ error: error.message })
+
+      const avatarFormat = await sharp(data).resize({ width: 128, height: 128 }).toBuffer()
+      res.send({
+        avatar: {
+          base64: avatarFormat.toString('base64'),
+          type: extension
+        }
+      })
+    })
+  
 }
 
 module.exports = {
