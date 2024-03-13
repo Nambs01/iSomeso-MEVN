@@ -1,11 +1,10 @@
-const { promises, existsSync, rmdir, unlink, readdir } = require('fs')
-
 const multer = require('multer')
 const path = require('path')
+const { promises, existsSync } = require('fs')
 
 const storage = multer.diskStorage({
   destination: async function (req, file, cb){
-    const dirPath = path.join(__dirname, '../../public/images', 'user/' + req.user._id)
+    const dirPath = path.join('./public/images', 'user/' + req.user._id)
 
     if(existsSync(dirPath))
       await promises.rmdir(dirPath, { recursive: true})
@@ -14,6 +13,10 @@ const storage = multer.diskStorage({
     cb(null, dirPath)
   },
   filename: function (req, file, cb){
+
+    if(!file.originalname.match(/\.(jpg|png|svg|jpeg|tiff|gif|webp)$/))
+      return cb(new Error("Format fichier invalide!"))
+    
     const extension = path.extname(file.originalname)
     req.user.avatarFileName = Date.now()+extension
     cb(null, req.user.avatarFileName)
