@@ -41,7 +41,8 @@ const getMessages = async (req, res) => {
         { from: req.user._id, to: req.params.id },
         { from: req.params.id, to: req.user._id }
       ]
-    }).sort({ createdAt: -1 }).populate(['to', 'from']).exec();
+    })
+    // .sort({ createdAt: -1 });
     
     // modifier tous les messages envoyer par l'autre utilisateur en vue
     messages.forEach((message) => {
